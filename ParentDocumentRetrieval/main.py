@@ -1,10 +1,9 @@
+from typing import List
 from llama_index import (
     Document,
-    StorageContext,
     VectorStoreIndex,
     SimpleDirectoryReader,
     ServiceContext,
-    load_index_from_storage,
 )
 from llama_index.retrievers import RecursiveRetriever
 from llama_index.query_engine import RetrieverQueryEngine
@@ -91,7 +90,7 @@ query_engine_chunk = RetrieverQueryEngine.from_args(
 )
 
 # RAG pipeline evals
-tru = Tru()
+tru = Tru(database_file="../default.sqlite")
 
 openai = OpenAITruLens()
 
@@ -113,14 +112,25 @@ f_qs_relevance = Feedback(openai.qs_relevance).on_input().on(
 
 
 tru_query_engine_recorder = TruLlama(query_engine_chunk,
-    app_id='Parent Document Retrieval',
+    app_id='Parent_document_retrieval',
     feedbacks=[f_groundedness, f_qa_relevance, f_qs_relevance])
 
+eval_questions = []
 
-# eval using context window
-with tru_query_engine_recorder as recording:
-    query_engine_chunk.query("What did the president say about covid-19")
+with open("./eval_questions.txt", "r") as eval_qn:
+    for qn in eval_qn:
+        qn_stripped = qn.strip()
+        eval_questions.append(qn_stripped)
 
+
+def run_eval(eval_questions: List[str]):
+    for qn in eval_questions:
+        # eval using context window
+        with tru_query_engine_recorder as recording:
+            query_engine_chunk.query(qn)
+
+
+run_eval(eval_questions=eval_questions)
 
 # run dashboard
 tru.run_dashboard()
